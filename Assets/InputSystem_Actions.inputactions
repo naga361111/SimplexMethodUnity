@@ -991,6 +991,34 @@
                     "isPartOfComposite": false
                 }
             ]
+        },
+        {
+            "name": "Step",
+            "id": "b2f14982-d9d9-491c-8972-1c4fd4f7ba42",
+            "actions": [
+                {
+                    "name": "Process",
+                    "type": "Button",
+                    "id": "acf3ce02-0add-4ce9-bcf5-6f86d46718a8",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                }
+            ],
+            "bindings": [
+                {
+                    "name": "",
+                    "id": "a337ac5a-6e3b-4f3a-8145-10b9bac1b79d",
+                    "path": "<Keyboard>/anyKey",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Process",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                }
+            ]
         }
     ],
     "controlSchemes": [

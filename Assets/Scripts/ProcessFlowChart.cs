@@ -7,18 +7,59 @@ using UnityEngine.InputSystem;
 public class ProcessFlowChart : MonoBehaviour
 {
     private Dictionary<int, int> _negativeValueIndex = new();
+    private int _steps;
 
-    public void OnJump(InputValue value)
+    private List<KeyValuePair<int, int>> _sortedEntries = new();
+    private int _lastColIndex;
+    private float _result;
+    private float _minRatio;
+    private int _minRatioRow;
+    private int _pivotCol;
+
+    // 키보드 입력 (Simplex Method 과정 진행)
+    public void OnProcess(InputValue value)
     {
-        var isPressed = value.isPressed;
+        Debug.Log($"Hi {_steps}");
 
-        if (isPressed)
+        switch (_steps)
         {
-            CheckNegativeEntry();
+            case 0:
+                FindNegativeInFirstCol();
+                break;
+            case 1:
+                CheckNegativeEntry();
+                break;
+            case 2:
+                FindDivideRowElement();
+                break;
+            case 3:
+                ExecuteDivideRow();
+                break;
+            case 4:
+                FindMinFromDivideRow();
+                break;
+            case 5:
+                FindCrossPoint();
+                break;
+            case 6:
+                DivideCrossedCol();
+                break;
+            case 7:
+                GaussEliminate();
+                break;
+            case 8:
+                Loop();
+                break;
+            default:
+                Debug.Log($"{_steps} is not valid step.");
+                break;
         }
+
+        _steps++;
     }
 
-    private void CheckNegativeEntry()
+    // Step 0
+    private void FindNegativeInFirstCol()
     {
         if (DataSpawner.Instance == null || DataSpawner.Instance.RuntimeTable == null)
         {
@@ -49,98 +90,160 @@ public class ProcessFlowChart : MonoBehaviour
             return;
         }
 
-        DivideLastRowValue();
+        // 음수인 위치를 받아서 해당 TMPro Text의 색상을 붉은색으로 변경
+        foreach (var target in _negativeValueIndex.Keys)
+        {
+            DataSpawner.Instance.UpdateCellColor(0, target, Color.red);
+        }
     }
 
-    private void DivideLastRowValue()
+    // Step 1
+    private void CheckNegativeEntry()
     {
         // 절대값이 큰 순서대로 정렬
-        var sortedEntries = _negativeValueIndex
+        _sortedEntries = _negativeValueIndex
             .OrderByDescending(x => x.Value)
             .ToList();
 
-        var table = DataSpawner.Instance.RuntimeTable;
-
-        foreach (var entry in sortedEntries)
+        // 이번 순회에 작업할 음수 확정 ( 아닌 얘들은 연하게 변경 )
+        for (var i = 1; i < _sortedEntries.Count; i++)
         {
-            int pivotCol = entry.Key;
-            Debug.Log($"[Simplex] 피벗 열 {pivotCol} 처리 (첫 행 절대값: {entry.Value})");
-
-            float minRatio = float.MaxValue;
-            int minRatioRow = -1;
-
-            for (int i = 1; i < table.Length; i++)
-            {
-                float pivotValue = table[i][pivotCol];
-
-                if (pivotValue <= 0) continue; // 심플렉스법 Ratio Test는 양수일 때만 수행
-
-                int lastColIndex = table[i].Length - 1;
-                float lastValue = table[i][lastColIndex];
-                float result = lastValue / pivotValue;
-
-                // 데이터 업데이트 및 UI 반영
-                DataSpawner.Instance.UpdateCellValue(i, lastColIndex, result);
-
-                if (result < minRatio)
-                {
-                    minRatio = result;
-                    minRatioRow = i;
-                }
-            }
-
-            NormalizePivotRow(minRatioRow, pivotCol);
-            EliminateObjectiveRow(minRatioRow, pivotCol); // 가우스 소거법 추가
-
-            Debug.Log("--------------------------------------------------");
+            DataSpawner.Instance.UpdateCellColor(0, _sortedEntries[i].Key, Color.black);
         }
     }
 
-    // 나눠진 끝에 위치한 row들 중에서 가장 작은 값을 찾아서 그 값으로 해당 row 전체를 나눔 (마지막은 이미 나누어졌으므로 불필요)
-    private void NormalizePivotRow(int targetRow, int pivotCol)
+    // Step 2
+    private void FindDivideRowElement()
     {
         var table = DataSpawner.Instance.RuntimeTable;
-        float pivotElement = table[targetRow][pivotCol];
+        var entry = _sortedEntries.FirstOrDefault();
+        
+        _pivotCol = entry.Key;
+
+        _minRatio = float.MaxValue;
+        _minRatioRow = -1;
+
+        for (int i = 1; i < table.Length; i++)
+        {
+            float pivotValue = table[i][_pivotCol];
+
+            if (pivotValue <= 0) continue; // 심플렉스법 Ratio Test는 양수일 때만 수행
+            
+            _lastColIndex = table[i].Length - 1;
+            var lastValue = table[i][_lastColIndex];
+            _result = lastValue / pivotValue;
+            
+            DataSpawner.Instance.UpdateCellColor(i, _pivotCol, Color.blue); // 나눌 값 강조
+            DataSpawner.Instance.UpdateCellColor(i, _lastColIndex, Color.blue); // 나눠질 값 강조
+        }
+    }
+
+    // Step 3
+    private void ExecuteDivideRow()
+    {
+        var table = DataSpawner.Instance.RuntimeTable;
+
+        for (int i = 1; i < table.Length; i++)
+        {
+            float pivotValue = table[i][_pivotCol];
+            
+            // 피벗 열의 값이 양수인 경우에만 연산을 수행 (Step 2와 동일 조건)
+            if (pivotValue <= 0) continue;
+
+            float lastValue = table[i][_lastColIndex];
+            float ratio = lastValue / pivotValue;
+
+            // 각 행의 데이터 업데이트 및 UI 반영
+            DataSpawner.Instance.UpdateCellValue(i, _lastColIndex, ratio);
+        
+            // 나눠진 값 중에서 최소 비율을 가진 행을 탐색
+            if (ratio < _minRatio)
+            {
+                _minRatio = ratio;
+                _minRatioRow = i;
+            }
+            
+            DataSpawner.Instance.UpdateCellColor(i, _pivotCol, Color.black); // 강조 해제
+        }
+    }
+    
+    // Step 4
+    private void FindMinFromDivideRow()
+    {
+        var table = DataSpawner.Instance.RuntimeTable;
+        
+        for (int i = 1; i < table.Length; i++)
+        {
+            if (i == _minRatioRow) continue;
+
+            // 계산이 수행되었던 행(pivotValue > 0)들 중 최소값이 아닌 것들은 색상을 연하게 변경
+            float pivotValue = table[i][_pivotCol];
+            if (pivotValue > 0)
+            {
+                DataSpawner.Instance.UpdateCellColor(i, _lastColIndex, Color.black);
+            }
+        }
+    }
+    
+    // Step 5
+    private void FindCrossPoint()
+    {
+        DataSpawner.Instance.UpdateCellColor(_minRatioRow, _pivotCol, Color.purple);
+    }
+
+    // Step 6
+    private void DivideCrossedCol()
+    {
+        var table = DataSpawner.Instance.RuntimeTable;
+        float pivotElement = table[_minRatioRow][_pivotCol];
 
         if (pivotElement == 0) return;
 
-        Debug.Log($"[Simplex] 행 {targetRow} 정규화 시작 (교차 지점 값: {pivotElement})");
-
-        int colCount = table[targetRow].Length;
+        // 보라색으로 강조된 피벗 값을 기준으로 해당 행의 모든 요소를 나눔
+        // 마지막 열은 ExecuteDivideRow에서 이미 나누어졌으므로 제외하고 순회
+        int colCount = table[_minRatioRow].Length;
         for (int j = 0; j < colCount - 1; j++)
         {
-            float currentValue = table[targetRow][j];
+            float currentValue = table[_minRatioRow][j];
             float newValue = currentValue / pivotElement;
 
-            DataSpawner.Instance.UpdateCellValue(targetRow, j, newValue);
+            DataSpawner.Instance.UpdateCellValue(_minRatioRow, j, newValue);
         }
-
-        Debug.Log($"[Simplex] 행 {targetRow} 정규화 완료");
+        
+        // 작업 완료 후 피벗 셀의 강조 색상 해제
+        DataSpawner.Instance.UpdateCellColor(_minRatioRow, _pivotCol, Color.black);
     }
 
-    private void EliminateObjectiveRow(int pivotRow, int pivotCol)
+    // Step 7
+    private void GaussEliminate()
     {
         var table = DataSpawner.Instance.RuntimeTable;
 
-        // 1. 첫 번째 행의 피벗 열 원본 값(음수)을 저장
-        float originalObjectiveValue = table[0][pivotCol];
-
-        Debug.Log($"[Simplex] 가우스 소거법 시작 (목적함수 행, 피벗 열 값: {originalObjectiveValue})");
-
-        int colCount = table[0].Length;
-
-        // 2. 첫 번째 행의 모든 요소에 대해: NewRow0 = OldRow0 - (OriginalValue * PivotRow)
-        for (int j = 0; j < colCount; j++)
+        var originalValue = table[0][_pivotCol];
+        var rowCount = table[0].Length;
+        
+        for (var j = 0; j < rowCount; j++)
         {
-            float currentVal = table[0][j];
-            float pivotRowVal = table[pivotRow][j];
+            var currentVal = table[0][j];
+            var pivotRowVal = table[_minRatioRow][j];
 
-            // 계산: 원본 값 * 정규화된 행의 요소 를 기존 값에서 뺌
-            float newValue = currentVal - (originalObjectiveValue * pivotRowVal);
+            var newValue = currentVal - (originalValue * pivotRowVal);
 
             DataSpawner.Instance.UpdateCellValue(0, j, newValue);
         }
+        
+        DataSpawner.Instance.UpdateCellColor(0, _pivotCol, Color.black);
+        DataSpawner.Instance.UpdateCellColor(_minRatioRow, _lastColIndex, Color.black);
+        
+        _negativeValueIndex.Remove(_negativeValueIndex.First().Key);
+    }
 
-        Debug.Log($"[Simplex] 가우스 소거법 완료 (첫 번째 행의 {pivotCol}번 열이 0이 됨)");
+    // Step 8
+    private void Loop()
+    {
+        if (_negativeValueIndex.Count == 0) return;
+
+        Debug.Log("Another Loop Start");
+        _steps = -1;
     }
 }

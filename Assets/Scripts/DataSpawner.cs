@@ -89,4 +89,14 @@ public class DataSpawner : MonoBehaviour
             _cellTexts[row][col].text = value.ToString("F2"); // 업데이트 시에도 소수점 표시
         }
     }
+
+    public void UpdateCellColor(int row, int col, Color color)
+    {
+        if (row < 0 || row >= _cellTexts.Length || col < 0 || col >= _cellTexts[row].Length) return;
+
+        if (_cellTexts[row][col] != null)
+        {
+            _cellTexts[row][col].color = color;
+        }
+    }
 }

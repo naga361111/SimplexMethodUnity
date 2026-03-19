@@ -530,7 +530,7 @@ MonoBehaviour:
   m_ActionEvents: []
   m_NeverAutoSwitchControlSchemes: 0
   m_DefaultControlScheme: Keyboard&Mouse
-  m_DefaultActionMap: df70fa95-8a34-4494-b137-73ab6b9c7d37
+  m_DefaultActionMap: b2f14982-d9d9-491c-8972-1c4fd4f7ba42
   m_SplitScreenIndex: -1
   m_Camera: {fileID: 0}
 --- !u!1 &1738982901
