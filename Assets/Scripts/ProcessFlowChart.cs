@@ -42,13 +42,16 @@ public class ProcessFlowChart : MonoBehaviour
                 FindCrossPoint();
                 break;
             case 6:
-                DivideCrossedCol();
+                FindPointsFromRow();
                 break;
             case 7:
-                GaussEliminate();
+                DivideCrossedCol();
                 break;
             case 8:
-                Loop();
+                FindGaussEliminate();
+                break;
+            case 9:
+                GaussEliminate();
                 break;
             default:
                 Debug.Log($"{_steps} is not valid step.");
@@ -117,7 +120,7 @@ public class ProcessFlowChart : MonoBehaviour
     {
         var table = DataSpawner.Instance.RuntimeTable;
         var entry = _sortedEntries.FirstOrDefault();
-        
+
         _pivotCol = entry.Key;
 
         _minRatio = float.MaxValue;
@@ -128,11 +131,11 @@ public class ProcessFlowChart : MonoBehaviour
             float pivotValue = table[i][_pivotCol];
 
             if (pivotValue <= 0) continue; // 심플렉스법 Ratio Test는 양수일 때만 수행
-            
+
             _lastColIndex = table[i].Length - 1;
             var lastValue = table[i][_lastColIndex];
             _result = lastValue / pivotValue;
-            
+
             DataSpawner.Instance.UpdateCellColor(i, _pivotCol, Color.blue); // 나눌 값 강조
             DataSpawner.Instance.UpdateCellColor(i, _lastColIndex, Color.blue); // 나눠질 값 강조
         }
@@ -146,7 +149,7 @@ public class ProcessFlowChart : MonoBehaviour
         for (int i = 1; i < table.Length; i++)
         {
             float pivotValue = table[i][_pivotCol];
-            
+
             // 피벗 열의 값이 양수인 경우에만 연산을 수행 (Step 2와 동일 조건)
             if (pivotValue <= 0) continue;
 
@@ -155,23 +158,23 @@ public class ProcessFlowChart : MonoBehaviour
 
             // 각 행의 데이터 업데이트 및 UI 반영
             DataSpawner.Instance.UpdateCellValue(i, _lastColIndex, ratio);
-        
+
             // 나눠진 값 중에서 최소 비율을 가진 행을 탐색
             if (ratio < _minRatio)
             {
                 _minRatio = ratio;
                 _minRatioRow = i;
             }
-            
+
             DataSpawner.Instance.UpdateCellColor(i, _pivotCol, Color.black); // 강조 해제
         }
     }
-    
+
     // Step 4
     private void FindMinFromDivideRow()
     {
         var table = DataSpawner.Instance.RuntimeTable;
-        
+
         for (int i = 1; i < table.Length; i++)
         {
             if (i == _minRatioRow) continue;
@@ -184,7 +187,7 @@ public class ProcessFlowChart : MonoBehaviour
             }
         }
     }
-    
+
     // Step 5
     private void FindCrossPoint()
     {
@@ -192,6 +195,22 @@ public class ProcessFlowChart : MonoBehaviour
     }
 
     // Step 6
+    private void FindPointsFromRow()
+    {
+        var table = DataSpawner.Instance.RuntimeTable;
+
+        for (var i = 0; i < table[_minRatioRow].Length - 1; i++)
+        {
+            var current = table[_minRatioRow][i];
+
+            if (current != 0)
+            {
+                DataSpawner.Instance.UpdateCellColor(_minRatioRow, i, Color.rebeccaPurple);
+            }
+        }
+    }
+
+    // Step 7
     private void DivideCrossedCol()
     {
         var table = DataSpawner.Instance.RuntimeTable;
@@ -209,19 +228,45 @@ public class ProcessFlowChart : MonoBehaviour
 
             DataSpawner.Instance.UpdateCellValue(_minRatioRow, j, newValue);
         }
-        
+
         // 작업 완료 후 피벗 셀의 강조 색상 해제
-        DataSpawner.Instance.UpdateCellColor(_minRatioRow, _pivotCol, Color.black);
+        for (var i = 0; i < table[_minRatioRow].Length - 1; i++)
+        {
+            var current = table[_minRatioRow][i];
+
+            if (current != 0)
+            {
+                DataSpawner.Instance.UpdateCellColor(_minRatioRow, i, Color.black);
+            }
+        }
     }
 
-    // Step 7
+    // Step 8
+    private void FindGaussEliminate()
+    {
+        var table = DataSpawner.Instance.RuntimeTable;
+        
+        for (var i = 0; i < table[0].Length; i++)
+        {
+            if (i == _pivotCol) continue;
+            
+            DataSpawner.Instance.UpdateCellColor(0, i, Color.green);
+        }
+
+        for (var i = 0; i < table[_minRatioRow].Length; i++)
+        {
+            DataSpawner.Instance.UpdateCellColor(_minRatioRow, i, Color.green);
+        }
+    }
+    
+    // Step 9
     private void GaussEliminate()
     {
         var table = DataSpawner.Instance.RuntimeTable;
 
         var originalValue = table[0][_pivotCol];
         var rowCount = table[0].Length;
-        
+
         for (var j = 0; j < rowCount; j++)
         {
             var currentVal = table[0][j];
@@ -231,16 +276,17 @@ public class ProcessFlowChart : MonoBehaviour
 
             DataSpawner.Instance.UpdateCellValue(0, j, newValue);
         }
-        
-        DataSpawner.Instance.UpdateCellColor(0, _pivotCol, Color.black);
-        DataSpawner.Instance.UpdateCellColor(_minRatioRow, _lastColIndex, Color.black);
-        
-        _negativeValueIndex.Remove(_negativeValueIndex.First().Key);
-    }
 
-    // Step 8
-    private void Loop()
-    {
+        for (var i = 0; i < table.Length; i++)
+        {
+            for (var j = 0; j < table[i].Length; j++)
+            {
+                DataSpawner.Instance.UpdateCellColor(i, j, Color.black);
+            }
+        }
+
+        _negativeValueIndex.Remove(_negativeValueIndex.First().Key);
+        
         if (_negativeValueIndex.Count == 0) return;
 
         Debug.Log("Another Loop Start");
