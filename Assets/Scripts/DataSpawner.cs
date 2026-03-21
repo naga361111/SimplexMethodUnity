@@ -61,7 +61,7 @@ public class DataSpawner : MonoBehaviour
 
                 var dataText = dataObjComp.AddComponent<TextMeshProUGUI>();
                 dataText.text = cellValue.ToString("F2"); // 소수점 둘째자리까지 표시
-                dataText.fontSize = 16;
+                dataText.fontSize = 24;
                 dataText.color = Color.black;
                 dataText.alignment = TextAlignmentOptions.Center;
 
