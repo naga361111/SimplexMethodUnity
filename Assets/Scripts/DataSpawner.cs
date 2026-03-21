@@ -11,6 +11,8 @@ public class DataSpawner : MonoBehaviour
 
     public float[][] RuntimeTable { get; private set; }
     private TextMeshProUGUI[][] _cellTexts;
+    
+    private Canvas _parentCanvas;
 
     private void Awake()
     {
@@ -44,6 +46,12 @@ public class DataSpawner : MonoBehaviour
     {
         if (RuntimeTable == null || RuntimeTable.Length == 0) return;
 
+        _parentCanvas = GetComponentInParent<Canvas>();
+        if (_parentCanvas == null)
+        {
+            _parentCanvas = FindObjectOfType<Canvas>();
+        }
+        
         var verticalCount = RuntimeTable.Length;
         var horizontalCount = RuntimeTable[0].Length;
 
@@ -57,11 +65,13 @@ public class DataSpawner : MonoBehaviour
                 var cellValue = RuntimeTable[i][j];
 
                 var dataObjComp = new GameObject($"Data_{i}_{j}");
-                dataObjComp.transform.SetParent(transform, true);
+                dataObjComp.transform.SetParent(transform, false);
 
                 var dataText = dataObjComp.AddComponent<TextMeshProUGUI>();
                 dataText.text = cellValue.ToString("F2"); // 소수점 둘째자리까지 표시
-                dataText.fontSize = 24;
+                dataText.enableAutoSizing = true;
+                dataText.fontSizeMin = 8f;   // 최소 폰트 크기
+                dataText.fontSizeMax = 48f;
                 dataText.color = Color.black;
                 dataText.alignment = TextAlignmentOptions.Center;
 
